@@ -35,16 +35,10 @@ jobs:
       - name: Setup Gradle (with cache)
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22.x'
-
       - name: Generate a changelog
         uses: orhun/git-cliff-action@v4
         with:
           config: cliff.toml
-          args: --verbose
         env:
           OUTPUT: CHANGELOG.md
           GITHUB_REPO: ${{ github.repository }}
@@ -60,6 +54,7 @@ jobs:
 
       - name: Build
         run: |
+          chmod +x gradlew
           ./gradlew --no-daemon build -Pmod.version="${{ inputs.version }}"
 
       - name: Publish to Modrinth and CurseForge
