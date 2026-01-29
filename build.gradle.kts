@@ -168,7 +168,9 @@ publishMods {
             }
 
             requires("fabric-api")
-            requires("modmenu")
+            requires("cloth-config")
+            requires("fabric-language-kotlin")
+            optional("modmenu")
         }
     }
 
@@ -191,6 +193,8 @@ publishMods {
             }
 
             requires("fabric-api")
+            requires("cloth-config")
+            requires("fabric-language-kotlin")
             optional("modmenu")
         }
     }
