@@ -3,6 +3,7 @@ package uk.co.hexeption.omnibind.discovery
 import net.minecraft.client.Minecraft
 import net.minecraft.client.OptionInstance
 import net.minecraft.client.Options
+import net.minecraft.network.chat.Component
 import org.slf4j.LoggerFactory
 import uk.co.hexeption.omnibind.api.SliderSetting
 import uk.co.hexeption.omnibind.api.ToggleableSetting
@@ -15,25 +16,27 @@ object SettingsDiscovery {
 
     private val LOGGER = LoggerFactory.getLogger("OmniBind/Discovery")
 
-    private val CATEGORY_PATTERNS = linkedMapOf(
-        "soundMusic" to "Music",
-        "soundRecord" to "Music",
+    private val CATEGORY_MAPPINGS = mapOf(
+        "music" to "Sound",
         "sound" to "Sound",
+        "record" to "Sound",
         "volume" to "Sound",
         "render" to "Video",
         "graphics" to "Video",
         "cloud" to "Video",
         "fullscreen" to "Video",
         "vsync" to "Video",
-        "bobView" to "Video",
+        "bob" to "Video",
         "particles" to "Video",
         "gui" to "Video",
         "fov" to "Video",
         "gamma" to "Video",
+        "brightness" to "Video",
         "screen" to "Video",
         "chat" to "Chat",
         "narrator" to "Accessibility",
         "accessibility" to "Accessibility",
+        "contrast" to "Accessibility",
         "touch" to "Controls",
         "auto" to "Controls",
         "key" to "Controls",
@@ -46,7 +49,8 @@ object SettingsDiscovery {
         "server" to "Multiplayer",
         "realms" to "Multiplayer",
         "snooper" to "Privacy",
-        "telemetry" to "Privacy"
+        "telemetry" to "Privacy",
+        "secure" to "Chat"
     )
 
     private val DISPLAY_NAME_OVERRIDES = mapOf(
@@ -83,10 +87,7 @@ object SettingsDiscovery {
         "forceUnicodeFont" to "Force Unicode Font",
         "hideMatchedNames" to "Hide Matched Names",
         "operatorItemsTab" to "Operator Items Tab",
-        "commandSuggestions" to "Command Suggestions"
-    )
-
-    private val SLIDER_DISPLAY_NAME_OVERRIDES = mapOf(
+        "commandSuggestions" to "Command Suggestions",
         "gamma" to "Brightness",
         "fov" to "FOV",
         "sensitivity" to "Mouse Sensitivity",
@@ -114,63 +115,21 @@ object SettingsDiscovery {
         "soundVoiceVolume" to "Voice Volume"
     )
 
-    private val SLIDER_RANGES = mapOf(
-        "gamma" to Triple(0.0, 5.0, 0.1),
-        "fov" to Triple(30.0, 110.0, 1.0),
-        "sensitivity" to Triple(0.0, 1.0, 0.01),
-        "renderDistance" to Triple(2.0, 32.0, 1.0),
-        "simulationDistance" to Triple(5.0, 32.0, 1.0),
-        "entityDistanceScaling" to Triple(0.5, 5.0, 0.25),
-        "guiScale" to Triple(0.0, 4.0, 1.0),
-        "chatScale" to Triple(0.0, 1.0, 0.01),
-        "chatWidth" to Triple(0.0, 1.0, 0.01),
-        "chatHeightFocused" to Triple(0.0, 1.0, 0.01),
-        "chatHeightUnfocused" to Triple(0.0, 1.0, 0.01),
-        "chatLineSpacing" to Triple(0.0, 1.0, 0.01),
-        "textBackgroundOpacity" to Triple(0.0, 1.0, 0.01),
-        "chatOpacity" to Triple(0.0, 1.0, 0.01),
-        "chatDelay" to Triple(0.0, 6.0, 0.1),
-        // Sound volumes
-        "soundMasterVolume" to Triple(0.0, 1.0, 0.05),
-        "soundMusicVolume" to Triple(0.0, 1.0, 0.05),
-        "soundRecordVolume" to Triple(0.0, 1.0, 0.05),
-        "soundWeatherVolume" to Triple(0.0, 1.0, 0.05),
-        "soundBlockVolume" to Triple(0.0, 1.0, 0.05),
-        "soundHostileVolume" to Triple(0.0, 1.0, 0.05),
-        "soundNeutralVolume" to Triple(0.0, 1.0, 0.05),
-        "soundPlayerVolume" to Triple(0.0, 1.0, 0.05),
-        "soundAmbientVolume" to Triple(0.0, 1.0, 0.05),
-        "soundVoiceVolume" to Triple(0.0, 1.0, 0.05)
-    )
-
     fun discoverVanillaSettings(): List<ToggleableSetting> {
-        val settings = mutableListOf<ToggleableSetting>()
-        val options = Minecraft.getInstance().options
-
         LOGGER.info("Starting vanilla settings discovery...")
-
-        try {
-            val optionsClass = Options::class.java
-            val fields = optionsClass.declaredFields
-
-            for (field in fields) {
-                try {
-                    field.isAccessible = true
-                    val setting = tryExtractBooleanSetting(field, options)
-                    if (setting != null) {
-                        settings.add(setting)
-                        LOGGER.debug("Discovered setting: ${setting.id} (${setting.displayName})")
-                    }
-                } catch (e: Exception) {
-                    LOGGER.debug("Failed to process field ${field.name}: ${e.message}")
+        val options = Minecraft.getInstance().options
+        val settings = Options::class.java.declaredFields.mapNotNull { field ->
+            try {
+                field.isAccessible = true
+                tryExtractBooleanSetting(field, options)?.also {
+                    LOGGER.debug("Discovered setting: ${it.id} (${it.displayName})")
                 }
+            } catch (e: Exception) {
+                LOGGER.debug("Failed to process field ${field.name}: ${e.message}")
+                null
             }
-
-            LOGGER.info("Discovered ${settings.size} vanilla toggleable settings")
-        } catch (e: Exception) {
-            LOGGER.error("Failed during settings discovery", e)
         }
-
+        LOGGER.info("Discovered ${settings.size} vanilla toggleable settings")
         return settings
     }
 
@@ -188,8 +147,8 @@ object SettingsDiscovery {
 
         val booleanOption = optionInstance as OptionInstance<Boolean>
         val fieldName = field.name
-        val displayName = DISPLAY_NAME_OVERRIDES[fieldName] ?: fieldNameToDisplayName(fieldName)
-        val category = determineCategory(fieldName)
+        val displayName = extractDisplayNameFromOption(optionInstance) ?: DISPLAY_NAME_OVERRIDES[fieldName] ?: fieldNameToDisplayName(fieldName)
+        val category = determineCategory(fieldName, displayName)
 
         return ToggleableSetting(
             id = "vanilla.$fieldName",
@@ -203,26 +162,15 @@ object SettingsDiscovery {
     }
 
     private fun fieldNameToDisplayName(fieldName: String): String {
-        val result = StringBuilder()
-        for ((index, char) in fieldName.withIndex()) {
-            if (index == 0) {
-                result.append(char.uppercaseChar())
-            } else if (char.isUpperCase()) {
-                result.append(' ')
-                result.append(char)
-            } else {
-                result.append(char)
-            }
-        }
-        return result.toString()
+        return fieldName.replace(Regex("([A-Z])"), " $1").replaceFirstChar { it.uppercaseChar() }
     }
 
-    private fun determineCategory(fieldName: String): String {
+    private fun determineCategory(fieldName: String, displayName: String): String {
         val lowerName = fieldName.lowercase()
-        for ((pattern, category) in CATEGORY_PATTERNS) {
-            if (lowerName.contains(pattern.lowercase())) return category
-        }
-        return "General"
+        val lowerDisplay = displayName.lowercase()
+        return CATEGORY_MAPPINGS.entries.firstOrNull { 
+            lowerName.contains(it.key) || lowerDisplay.contains(it.key)
+        }?.value ?: "General"
     }
 
     fun getCategories(settings: List<ToggleableSetting>): List<String> {
@@ -230,33 +178,20 @@ object SettingsDiscovery {
     }
 
     fun discoverVanillaSliderSettings(): List<SliderSetting> {
-        val settings = mutableListOf<SliderSetting>()
-        val options = Minecraft.getInstance().options
-
         LOGGER.info("Starting vanilla slider settings discovery...")
-
-        try {
-            val optionsClass = Options::class.java
-            val fields = optionsClass.declaredFields
-
-            for (field in fields) {
-                try {
-                    field.isAccessible = true
-                    val setting = tryExtractSliderSetting(field, options)
-                    if (setting != null) {
-                        settings.add(setting)
-                        LOGGER.debug("Discovered slider: ${setting.id} (${setting.displayName})")
-                    }
-                } catch (e: Exception) {
-                    LOGGER.debug("Failed to process slider field ${field.name}: ${e.message}")
+        val options = Minecraft.getInstance().options
+        val settings = Options::class.java.declaredFields.mapNotNull { field ->
+            try {
+                field.isAccessible = true
+                tryExtractSliderSetting(field, options)?.also {
+                    LOGGER.debug("Discovered slider: ${it.id} (${it.displayName})")
                 }
+            } catch (e: Exception) {
+                LOGGER.debug("Failed to process slider field ${field.name}: ${e.message}")
+                null
             }
-
-            LOGGER.info("Discovered ${settings.size} vanilla slider settings")
-        } catch (e: Exception) {
-            LOGGER.error("Failed during slider settings discovery", e)
         }
-
+        LOGGER.info("Discovered ${settings.size} vanilla slider settings")
         return settings
     }
 
@@ -272,11 +207,30 @@ object SettingsDiscovery {
         }
 
         val fieldName = field.name
-        val displayName = SLIDER_DISPLAY_NAME_OVERRIDES[fieldName] ?: return null
-        val category = determineCategory(fieldName)
-        val (min, max, step) = SLIDER_RANGES[fieldName] ?: Triple(0.0, 1.0, 0.1)
+        val displayName = extractDisplayNameFromOption(optionInstance) ?: DISPLAY_NAME_OVERRIDES[fieldName] ?: return null
+        val category = determineCategory(fieldName, displayName)
 
-        // Create getter/setter based on actual value type
+        val range = extractRangeFromOptionInstance(optionInstance)
+
+        val (min, max, step) = range ?: run {
+            val rawCurrent = when (currentValue) { is Number -> currentValue.toDouble() else -> 0.0 }
+            val fallbackMax = if (rawCurrent > 1.0) rawCurrent else 1.0
+            Triple(0.0, fallbackMax, 0.1)
+        }
+
+        val rawCurrent = when (currentValue) { is Number -> currentValue.toDouble() else -> 0.0 }
+        var finalMax = max
+        if (rawCurrent > finalMax) finalMax = rawCurrent
+        if (finalMax <= min) finalMax = min + maxOf(1.0, kotlin.math.abs(min))
+        var finalStep = step
+        val rangeSpan = finalMax - min
+        if (finalStep <= 0.0) finalStep = if (rangeSpan >= 1.0) 1.0 else 0.01
+        if (finalStep > rangeSpan) finalStep = if (rangeSpan >= 1.0) 1.0 else rangeSpan / 10.0
+
+        val isIntegerBacked = currentValue is Int
+        val adjustedMax = if (isIntegerBacked) kotlin.math.ceil(finalMax).toDouble() else finalMax
+        val adjustedStep = if (isIntegerBacked) kotlin.math.max(1.0, kotlin.math.round(finalStep).toDouble()) else finalStep
+
         val (getter, setter) = when (currentValue) {
             is Int -> {
                 val intOption = optionInstance as OptionInstance<Int>
@@ -303,11 +257,125 @@ object SettingsDiscovery {
             getter = getter,
             setter = setter,
             min = min,
-            max = max,
-            defaultStep = step,
+            max = adjustedMax,
+            defaultStep = adjustedStep,
             description = "Vanilla Minecraft setting: $displayName",
             modId = null
         )
     }
-}
 
+    private fun extractRangeFromOptionInstance(optionInstance: OptionInstance<*>): Triple<Double, Double, Double>? {
+        try {
+            val cls = optionInstance.javaClass
+            val valuesField = cls.declaredFields.firstOrNull { it.name == "values" || it.type.name.contains("ValueSet") }
+            if (valuesField != null) {
+                valuesField.isAccessible = true
+                val valuesObj = valuesField.get(optionInstance)
+                if (valuesObj != null) {
+                    val range = probeObjectForRange(valuesObj)
+                    if (range != null) return range
+                }
+            }
+
+            return probeObjectForRange(optionInstance)
+        } catch (e: Exception) {
+            LOGGER.debug("Failed to extract range from OptionInstance: ${e.message}")
+        }
+        return null
+    }
+
+    private fun probeObjectForRange(obj: Any): Triple<Double, Double, Double>? {
+        try {
+            var min: Double? = null
+            var max: Double? = null
+            var step: Double? = null
+            val cls = obj.javaClass
+
+            for (f in cls.declaredFields) {
+                try {
+                    f.isAccessible = true
+                    val name = f.name.lowercase()
+                    val v = when (val value = f.get(obj)) {
+                        is Number -> value.toDouble()
+                        else -> null
+                    }
+                    if (v != null) {
+                        when {
+                            name.contains("min") || name.contains("lower") -> min = v
+                            name.contains("max") || name.contains("upper") -> max = v
+                            name.contains("step") || name.contains("increment") -> step = v
+                        }
+                    }
+                } catch (_: Throwable) {}
+            }
+
+            if (min == null || max == null) {
+                for (m in cls.methods) {
+                    try {
+                        if (m.parameterCount != 0) continue
+                        val name = m.name.lowercase()
+                        val v = when (val value = m.invoke(obj)) {
+                            is Number -> value.toDouble()
+                            else -> null
+                        }
+                        if (v != null) {
+                            when {
+                                name.contains("min") || name.contains("lower") -> min = v
+                                name.contains("max") || name.contains("upper") -> max = v
+                                name.contains("step") || name.contains("increment") -> step = v
+                            }
+                        }
+                    } catch (_: Throwable) {}
+                }
+            }
+
+            if (min != null && max != null) {
+                if (step == null) step = if ((max - min) >= 1.0) 1.0 else 0.01
+                return Triple(min, max, step)
+            }
+        } catch (_: Throwable) {}
+        return null
+    }
+
+
+    private fun extractDisplayNameFromOption(optionInstance: OptionInstance<*>?): String? {
+        if (optionInstance == null) return null
+
+        try {
+            val cls = optionInstance.javaClass
+
+            for (f in cls.declaredFields) {
+                f.isAccessible = true
+                val t = f.type
+                val name = f.name.lowercase()
+                if (t == String::class.java && (name.contains("key") || name.contains("translation") || name.contains("text"))) {
+                    val valStr = f.get(optionInstance) as? String
+                    if (!valStr.isNullOrEmpty()) {
+                        return Component.translatable(valStr).string
+                    }
+                }
+                if (Component::class.java.isAssignableFrom(t)) {
+                    val comp = f.get(optionInstance) as? Component
+                    if (comp != null) return comp.string
+                }
+            }
+
+            for (m in cls.methods) {
+                if (m.parameterCount != 0) continue
+                val rt = m.returnType
+                if (Component::class.java.isAssignableFrom(rt)) {
+                    val comp = m.invoke(optionInstance) as? Component
+                    if (comp != null) return comp.string
+                }
+                if (rt == String::class.java) {
+                    val s = m.invoke(optionInstance) as? String
+                    if (!s.isNullOrEmpty()) return s
+                }
+            }
+        } catch (e: Exception) {
+            LOGGER.debug("Failed to extract display name from OptionInstance: ${e.message}")
+        }
+
+        return null
+    }
+}

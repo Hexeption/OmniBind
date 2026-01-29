@@ -23,16 +23,16 @@ object NotificationManager {
     }
 
     fun showToggleNotification(setting: ToggleableSetting, newValue: Boolean) {
-        if (OmniBindConfig.showToasts()) showToast(setting.displayName, if (newValue) "§aON" else "§cOFF")
+        if (OmniBindConfig.showToasts()) showToast(setting.displayName, if (newValue) "ON" else "OFF")
         if (OmniBindConfig.showHudNotifications()) showHudNotification(
-            "${setting.displayName}: ${if (newValue) "ON" else "OFF"}", newValue
+            String.format("%s: %s", setting.displayName, if (newValue) "ON" else "OFF"), newValue
         )
     }
 
     fun showSliderNotification(slider: SliderSetting, newValue: Double) {
         val formattedValue = String.format("%.2f", newValue)
-        if (OmniBindConfig.showToasts()) showToast(slider.displayName, "§b$formattedValue")
-        if (OmniBindConfig.showHudNotifications()) showHudNotification("${slider.displayName}: $formattedValue", true)
+        if (OmniBindConfig.showToasts()) showToast(slider.displayName, formattedValue)
+        if (OmniBindConfig.showHudNotifications()) showHudNotification("${'$'}{slider.displayName}: ${'$'}formattedValue", true)
     }
 
     private fun showToast(name: String, value: String) {
@@ -40,7 +40,11 @@ object NotificationManager {
             val client = Minecraft.getInstance()
             val toastManager = client.toastManager
             val title = Component.translatable("omnibind.notification.title")
-            val description = Component.literal("$name: $value")
+            val description = when (value) {
+                "ON" -> Component.translatable("omnibind.notification.toggled_on", name)
+                "OFF" -> Component.translatable("omnibind.notification.toggled_off", name)
+                else -> Component.translatable("omnibind.notification.custom", name, value)
+            }
 
             toastManager.addToast(
                 SystemToast.multiline(

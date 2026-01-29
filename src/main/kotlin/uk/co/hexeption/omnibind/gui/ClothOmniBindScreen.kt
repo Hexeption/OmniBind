@@ -16,41 +16,42 @@ import uk.co.hexeption.omnibind.keybind.SettingsRegistry
 object ClothOmniBindScreen {
 
     fun create(parent: Screen?): Screen {
-        val builder = ConfigBuilder.create().setParentScreen(parent).setTitle(Component.literal("OmniBind Settings"))
-            .setSavingRunnable {
-                OmniBindConfig.save()
-            }
+        val builder =
+            ConfigBuilder.create().setParentScreen(parent).setTitle(Component.translatable("omnibind.gui.title"))
+                .setSavingRunnable { OmniBindConfig.save() }
 
         val entryBuilder = builder.entryBuilder()
 
-        val generalCategory = builder.getOrCreateCategory(Component.literal("General"))
+        val generalCategory = builder.getOrCreateCategory(Component.translatable("omnibind.gui.category.general"))
 
         generalCategory.addEntry(
             entryBuilder.startBooleanToggle(
-                Component.literal("Show Toast Notifications"), OmniBindConfig.showToasts()
-            ).setDefaultValue(true).setTooltip(Component.literal("Display toast notifications when toggling settings"))
-                .setSaveConsumer { OmniBindConfig.setShowToasts(it) }.build())
+                Component.translatable("omnibind.gui.show_toasts"), OmniBindConfig.showToasts()
+            ).setDefaultValue(true).setTooltip(Component.translatable("omnibind.gui.show_toasts.tooltip"))
+                .setSaveConsumer { OmniBindConfig.setShowToasts(it) }.build()
+        )
 
         generalCategory.addEntry(
             entryBuilder.startBooleanToggle(
-                Component.literal("Show HUD Notifications"), OmniBindConfig.showHudNotifications()
-            ).setDefaultValue(false)
-                .setTooltip(Component.literal("Display HUD overlay notifications when toggling settings"))
-                .setSaveConsumer { OmniBindConfig.setShowHudNotifications(it) }.build())
+                Component.translatable("omnibind.gui.show_hud_notifications"), OmniBindConfig.showHudNotifications()
+            ).setDefaultValue(false).setTooltip(Component.translatable("omnibind.gui.show_hud_notifications.tooltip"))
+                .setSaveConsumer { OmniBindConfig.setShowHudNotifications(it) }.build()
+        )
 
         // Toggleable Settings
         val settings = SettingsRegistry.getAllSettings().sortedWith(compareBy({ it.category }, { it.displayName }))
-
         val byCategory = settings.groupBy { it.category }
 
         for ((categoryName, settingsList) in byCategory) {
-            val category = builder.getOrCreateCategory(Component.literal(categoryName))
+            val catComponent = Component.translatable("omnibind.category.$categoryName", categoryName)
+            val category = builder.getOrCreateCategory(catComponent)
 
             for (setting in settingsList) {
-                val subCategory = entryBuilder.startSubCategory(Component.literal(setting.displayName))
+                val subCategory =
+                    entryBuilder.startSubCategory(Component.translatable("omnibind.setting.name", setting.displayName))
 
                 if (setting.description.isNotEmpty()) {
-                    subCategory.setTooltip(Component.literal(setting.description))
+                    subCategory.setTooltip(Component.translatable("omnibind.setting.desc", setting.description))
                 }
 
                 val currentValue = try {
@@ -62,43 +63,44 @@ object ClothOmniBindScreen {
 
                 // Keybind enabled toggle
                 subCategory.add(
-                    entryBuilder.startBooleanToggle(Component.literal("Keybind Enabled"), keybindEnabled)
-                        .setDefaultValue(false).setTooltip(Component.literal("Enable keybind for this setting"))
-                        .setSaveConsumer { enabled ->
-                            OmniBindConfig.setToggleEnabled(setting.id, enabled)
-                        }.build())
+                    entryBuilder.startBooleanToggle(
+                        Component.translatable("omnibind.gui.keybind_enabled"), keybindEnabled
+                    ).setDefaultValue(false).setTooltip(Component.translatable("omnibind.gui.keybind_enabled.tooltip"))
+                        .setSaveConsumer { enabled -> OmniBindConfig.setToggleEnabled(setting.id, enabled) }.build()
+                )
 
                 // Current value toggle
                 subCategory.add(
-                    entryBuilder.startBooleanToggle(Component.literal("Value"), currentValue).setDefaultValue(false)
-                        .setTooltip(Component.literal("Current value of this setting")).setSaveConsumer { newValue ->
+                    entryBuilder.startBooleanToggle(
+                        Component.translatable("omnibind.gui.value"), currentValue
+                    ).setDefaultValue(false).setTooltip(Component.translatable("omnibind.gui.value.tooltip"))
+                        .setSaveConsumer { newValue ->
                             try {
                                 setting.setValue(newValue)
                             } catch (_: Exception) {
                             }
-                        }.build())
+                        }.build()
+                )
 
                 val keybind = OmniBindConfig.getKeybind(setting.id)
                 val currentKeyCode = keybindToModifierKeyCode(keybind)
 
                 subCategory.add(
-                    entryBuilder.startModifierKeyCodeField(Component.literal("Keybind"), currentKeyCode)
-                        .setDefaultValue(ModifierKeyCode.unknown())
-                        .setTooltip(Component.literal("Click and press a key to set the keybind"))
-                        .setModifierSaveConsumer { newKeyCode ->
-                            saveKeybind(setting.id, newKeyCode)
-                        }.build())
+                    entryBuilder.startModifierKeyCodeField(
+                        Component.translatable("omnibind.gui.keybind"), currentKeyCode
+                    ).setDefaultValue(ModifierKeyCode.unknown())
+                        .setTooltip(Component.translatable("omnibind.gui.keybind.tooltip"))
+                        .setModifierSaveConsumer { newKeyCode -> saveKeybind(setting.id, newKeyCode) }.build()
+                )
 
                 val notifDisabled = OmniBindConfig.isNotificationDisabled(setting.id)
                 subCategory.add(
                     entryBuilder.startBooleanToggle(
-                        Component.literal("Disable Notifications"),
-                        notifDisabled
-                    ).setDefaultValue(false)
-                        .setTooltip(Component.literal("Disable toast/HUD notifications for this setting"))
-                        .setSaveConsumer { disabled ->
-                            OmniBindConfig.setNotificationDisabled(setting.id, disabled)
-                        }.build())
+                    Component.translatable("omnibind.gui.disable_notifications"), notifDisabled
+                ).setDefaultValue(false)
+                    .setTooltip(Component.translatable("omnibind.gui.disable_notifications.tooltip"))
+                    .setSaveConsumer { disabled -> OmniBindConfig.setNotificationDisabled(setting.id, disabled) }
+                    .build())
 
                 category.addEntry(subCategory.build())
             }
@@ -107,17 +109,18 @@ object ClothOmniBindScreen {
         // Slider Settings
         val sliderSettings =
             SettingsRegistry.getAllSliderSettings().sortedWith(compareBy({ it.category }, { it.displayName }))
-
         val slidersByCategory = sliderSettings.groupBy { it.category }
 
         for ((categoryName, slidersList) in slidersByCategory) {
-            val category = builder.getOrCreateCategory(Component.literal(categoryName))
+            val catComponent = Component.translatable("omnibind.category.$categoryName", categoryName)
+            val category = builder.getOrCreateCategory(catComponent)
 
             for (slider in slidersList) {
-                val subCategory = entryBuilder.startSubCategory(Component.literal(slider.displayName))
+                val subCategory =
+                    entryBuilder.startSubCategory(Component.translatable("omnibind.slider.name", slider.displayName))
 
                 if (slider.description.isNotEmpty()) {
-                    subCategory.setTooltip(Component.literal(slider.description))
+                    subCategory.setTooltip(Component.translatable("omnibind.slider.desc", slider.description))
                 }
 
                 val currentValue = try {
@@ -128,69 +131,74 @@ object ClothOmniBindScreen {
                 val currentStep = slider.getStep()
                 val isEnabled = OmniBindConfig.isSliderEnabled(slider.id)
 
-                // Enable toggle for keybinds
+                // Enable toggle for slider keybind controls
                 subCategory.add(
-                    entryBuilder.startBooleanToggle(Component.literal("Keybinds Enabled"), isEnabled)
-                        .setDefaultValue(false).setTooltip(Component.literal("Enable keybind controls for this slider"))
-                        .setSaveConsumer { enabled ->
-                            OmniBindConfig.setSliderEnabled(slider.id, enabled)
-                        }.build())
+                    entryBuilder.startBooleanToggle(
+                        Component.translatable("omnibind.gui.slider_keybinds_enabled"), isEnabled
+                    ).setDefaultValue(false)
+                        .setTooltip(Component.translatable("omnibind.gui.slider_keybinds_enabled.tooltip"))
+                        .setSaveConsumer { enabled -> OmniBindConfig.setSliderEnabled(slider.id, enabled) }.build()
+                )
 
-                // Slider control
+                // Slider control (numeric field)
                 subCategory.add(
-                    entryBuilder.startDoubleField(Component.literal("Value"), currentValue).setDefaultValue(slider.min)
-                        .setMin(slider.min).setMax(slider.max)
-                        .setTooltip(Component.literal("Current value: ${String.format("%.2f", currentValue)}"))
-                        .setSaveConsumer { newValue ->
-                            try {
-                                slider.setValue(newValue)
-                            } catch (_: Exception) {
-                            }
-                        }.build())
+                    entryBuilder.startDoubleField(
+                        Component.translatable("omnibind.gui.value"), currentValue
+                    ).setDefaultValue(slider.min).setMin(slider.min).setMax(slider.max).setTooltip(
+                        Component.translatable(
+                            "omnibind.gui.slider_value.tooltip", String.format("%.2f", currentValue)
+                        )
+                    ).setSaveConsumer { newValue ->
+                        try {
+                            slider.setValue(newValue)
+                        } catch (_: Exception) {
+                        }
+                    }.build()
+                )
 
                 // Step size configuration
                 subCategory.add(
-                    entryBuilder.startDoubleField(Component.literal("Step Size"), currentStep)
-                        .setDefaultValue(slider.defaultStep).setMin(0.01).setMax(slider.max - slider.min)
-                        .setTooltip(Component.literal("Amount to change per keypress (default: ${slider.defaultStep})"))
-                        .setSaveConsumer { newStep ->
-                            OmniBindConfig.setSliderStep(slider.id, newStep)
-                        }.build())
+                    entryBuilder.startDoubleField(
+                        Component.translatable("omnibind.gui.step_size"), currentStep
+                    ).setDefaultValue(slider.defaultStep).setMin(0.01).setMax(slider.max - slider.min).setTooltip(
+                        Component.translatable(
+                            "omnibind.gui.step_size.tooltip", String.format("%.2f", slider.defaultStep)
+                        )
+                    ).setSaveConsumer { newStep -> OmniBindConfig.setSliderStep(slider.id, newStep) }.build()
+                )
 
                 // Increment keybind
                 val incKeybind = OmniBindConfig.getKeybind("${slider.id}.increment")
                 val incKeyCode = keybindToModifierKeyCode(incKeybind)
 
                 subCategory.add(
-                    entryBuilder.startModifierKeyCodeField(Component.literal("Increment (+)"), incKeyCode)
-                        .setDefaultValue(ModifierKeyCode.unknown())
-                        .setTooltip(Component.literal("Keybind to increase value"))
-                        .setModifierSaveConsumer { newKeyCode ->
-                            saveKeybind("${slider.id}.increment", newKeyCode)
-                        }.build())
+                    entryBuilder.startModifierKeyCodeField(
+                    Component.translatable("omnibind.gui.increment"), incKeyCode
+                ).setDefaultValue(ModifierKeyCode.unknown())
+                    .setTooltip(Component.translatable("omnibind.gui.increment.tooltip"))
+                    .setModifierSaveConsumer { newKeyCode -> saveKeybind("${slider.id}.increment", newKeyCode) }
+                    .build())
 
                 // Decrement keybind
                 val decKeybind = OmniBindConfig.getKeybind("${slider.id}.decrement")
                 val decKeyCode = keybindToModifierKeyCode(decKeybind)
 
                 subCategory.add(
-                    entryBuilder.startModifierKeyCodeField(Component.literal("Decrement (-)"), decKeyCode)
-                        .setDefaultValue(ModifierKeyCode.unknown())
-                        .setTooltip(Component.literal("Keybind to decrease value"))
-                        .setModifierSaveConsumer { newKeyCode ->
-                            saveKeybind("${slider.id}.decrement", newKeyCode)
-                        }.build())
+                    entryBuilder.startModifierKeyCodeField(
+                    Component.translatable("omnibind.gui.decrement"), decKeyCode
+                ).setDefaultValue(ModifierKeyCode.unknown())
+                    .setTooltip(Component.translatable("omnibind.gui.decrement.tooltip"))
+                    .setModifierSaveConsumer { newKeyCode -> saveKeybind("${slider.id}.decrement", newKeyCode) }
+                    .build())
 
                 val notifDisabled = OmniBindConfig.isNotificationDisabled(slider.id)
                 subCategory.add(
                     entryBuilder.startBooleanToggle(
-                        Component.literal("Disable Notifications"),
-                        notifDisabled
-                    ).setDefaultValue(false)
-                        .setTooltip(Component.literal("Disable toast/HUD notifications for this slider"))
-                        .setSaveConsumer { disabled ->
-                            OmniBindConfig.setNotificationDisabled(slider.id, disabled)
-                        }.build())
+                    Component.translatable("omnibind.gui.disable_notifications"), notifDisabled
+                ).setDefaultValue(false)
+                    .setTooltip(Component.translatable("omnibind.gui.disable_notifications.tooltip"))
+                    .setSaveConsumer { disabled -> OmniBindConfig.setNotificationDisabled(slider.id, disabled) }
+                    .build())
 
                 category.addEntry(subCategory.build())
             }
@@ -227,4 +235,3 @@ object ClothOmniBindScreen {
         }
     }
 }
-
