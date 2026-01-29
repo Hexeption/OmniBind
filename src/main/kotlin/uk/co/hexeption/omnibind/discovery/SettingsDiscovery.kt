@@ -3,10 +3,10 @@ package uk.co.hexeption.omnibind.discovery
 import net.minecraft.client.Minecraft
 import net.minecraft.client.OptionInstance
 import net.minecraft.client.Options
-import net.minecraft.network.chat.Component
 import org.slf4j.LoggerFactory
 import uk.co.hexeption.omnibind.api.SliderSetting
 import uk.co.hexeption.omnibind.api.ToggleableSetting
+import uk.co.hexeption.omnibind.mixins.OptionInstanceAccessor
 import java.lang.reflect.Field
 
 /**
@@ -147,7 +147,10 @@ object SettingsDiscovery {
 
         val booleanOption = optionInstance as OptionInstance<Boolean>
         val fieldName = field.name
-        val displayName = extractDisplayNameFromOption(optionInstance) ?: DISPLAY_NAME_OVERRIDES[fieldName] ?: fieldNameToDisplayName(fieldName)
+        val displayName =
+            extractDisplayNameFromOption(optionInstance) ?: DISPLAY_NAME_OVERRIDES[fieldName] ?: fieldNameToDisplayName(
+                fieldName
+            )
         val category = determineCategory(fieldName, displayName)
 
         return ToggleableSetting(
@@ -168,7 +171,7 @@ object SettingsDiscovery {
     private fun determineCategory(fieldName: String, displayName: String): String {
         val lowerName = fieldName.lowercase()
         val lowerDisplay = displayName.lowercase()
-        return CATEGORY_MAPPINGS.entries.firstOrNull { 
+        return CATEGORY_MAPPINGS.entries.firstOrNull {
             lowerName.contains(it.key) || lowerDisplay.contains(it.key)
         }?.value ?: "General"
     }
@@ -207,18 +210,25 @@ object SettingsDiscovery {
         }
 
         val fieldName = field.name
-        val displayName = extractDisplayNameFromOption(optionInstance) ?: DISPLAY_NAME_OVERRIDES[fieldName] ?: return null
+        val displayName =
+            extractDisplayNameFromOption(optionInstance) ?: DISPLAY_NAME_OVERRIDES[fieldName] ?: return null
         val category = determineCategory(fieldName, displayName)
 
         val range = extractRangeFromOptionInstance(optionInstance)
 
         val (min, max, step) = range ?: run {
-            val rawCurrent = when (currentValue) { is Number -> currentValue.toDouble() else -> 0.0 }
+            val rawCurrent = when (currentValue) {
+                is Number -> currentValue.toDouble()
+                else -> 0.0
+            }
             val fallbackMax = if (rawCurrent > 1.0) rawCurrent else 1.0
             Triple(0.0, fallbackMax, 0.1)
         }
 
-        val rawCurrent = when (currentValue) { is Number -> currentValue.toDouble() else -> 0.0 }
+        val rawCurrent = when (currentValue) {
+            is Number -> currentValue.toDouble()
+            else -> 0.0
+        }
         var finalMax = max
         if (rawCurrent > finalMax) finalMax = rawCurrent
         if (finalMax <= min) finalMax = min + maxOf(1.0, kotlin.math.abs(min))
@@ -229,7 +239,8 @@ object SettingsDiscovery {
 
         val isIntegerBacked = currentValue is Int
         val adjustedMax = if (isIntegerBacked) kotlin.math.ceil(finalMax).toDouble() else finalMax
-        val adjustedStep = if (isIntegerBacked) kotlin.math.max(1.0, kotlin.math.round(finalStep).toDouble()) else finalStep
+        val adjustedStep =
+            if (isIntegerBacked) kotlin.math.max(1.0, kotlin.math.round(finalStep).toDouble()) else finalStep
 
         val (getter, setter) = when (currentValue) {
             is Int -> {
@@ -266,18 +277,12 @@ object SettingsDiscovery {
 
     private fun extractRangeFromOptionInstance(optionInstance: OptionInstance<*>): Triple<Double, Double, Double>? {
         try {
-            val cls = optionInstance.javaClass
-            val valuesField = cls.declaredFields.firstOrNull { it.name == "values" || it.type.name.contains("ValueSet") }
-            if (valuesField != null) {
-                valuesField.isAccessible = true
-                val valuesObj = valuesField.get(optionInstance)
+            if (optionInstance is OptionInstanceAccessor) {
+                val valuesObj = (optionInstance as OptionInstanceAccessor).values
                 if (valuesObj != null) {
-                    val range = probeObjectForRange(valuesObj)
-                    if (range != null) return range
+                    return probeObjectForRange(valuesObj)
                 }
             }
-
-            return probeObjectForRange(optionInstance)
         } catch (e: Exception) {
             LOGGER.debug("Failed to extract range from OptionInstance: ${e.message}")
         }
@@ -306,7 +311,8 @@ object SettingsDiscovery {
                             name.contains("step") || name.contains("increment") -> step = v
                         }
                     }
-                } catch (_: Throwable) {}
+                } catch (_: Throwable) {
+                }
             }
 
             if (min == null || max == null) {
@@ -325,7 +331,8 @@ object SettingsDiscovery {
                                 name.contains("step") || name.contains("increment") -> step = v
                             }
                         }
-                    } catch (_: Throwable) {}
+                    } catch (_: Throwable) {
+                    }
                 }
             }
 
@@ -333,7 +340,8 @@ object SettingsDiscovery {
                 if (step == null) step = if ((max - min) >= 1.0) 1.0 else 0.01
                 return Triple(min, max, step)
             }
-        } catch (_: Throwable) {}
+        } catch (_: Throwable) {
+        }
         return null
     }
 
@@ -342,35 +350,8 @@ object SettingsDiscovery {
         if (optionInstance == null) return null
 
         try {
-            val cls = optionInstance.javaClass
-
-            for (f in cls.declaredFields) {
-                f.isAccessible = true
-                val t = f.type
-                val name = f.name.lowercase()
-                if (t == String::class.java && (name.contains("key") || name.contains("translation") || name.contains("text"))) {
-                    val valStr = f.get(optionInstance) as? String
-                    if (!valStr.isNullOrEmpty()) {
-                        return Component.translatable(valStr).string
-                    }
-                }
-                if (Component::class.java.isAssignableFrom(t)) {
-                    val comp = f.get(optionInstance) as? Component
-                    if (comp != null) return comp.string
-                }
-            }
-
-            for (m in cls.methods) {
-                if (m.parameterCount != 0) continue
-                val rt = m.returnType
-                if (Component::class.java.isAssignableFrom(rt)) {
-                    val comp = m.invoke(optionInstance) as? Component
-                    if (comp != null) return comp.string
-                }
-                if (rt == String::class.java) {
-                    val s = m.invoke(optionInstance) as? String
-                    if (!s.isNullOrEmpty()) return s
-                }
+            if (optionInstance is OptionInstanceAccessor) {
+                return (optionInstance as OptionInstanceAccessor).caption.string
             }
         } catch (e: Exception) {
             LOGGER.debug("Failed to extract display name from OptionInstance: ${e.message}")
