@@ -85,10 +85,9 @@ object SettingsRegistry {
         if (query.isBlank()) return getAllSettings()
         val lowerQuery = query.lowercase()
         return settings.values.filter { setting ->
-            setting.displayName.lowercase().contains(lowerQuery) ||
-            setting.id.lowercase().contains(lowerQuery) ||
-            setting.category.lowercase().contains(lowerQuery) ||
-            setting.description.lowercase().contains(lowerQuery)
+            setting.displayName.lowercase().contains(lowerQuery) || setting.id.lowercase()
+                .contains(lowerQuery) || setting.category.lowercase()
+                .contains(lowerQuery) || setting.description.lowercase().contains(lowerQuery)
         }
     }
 
@@ -171,18 +170,27 @@ object SettingsRegistry {
         val windowHandle = mc.window.handle()
         var modifiers = 0
 
-        if (GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS ||
-            GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS) {
+        if (GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS || GLFW.glfwGetKey(
+                windowHandle,
+                GLFW.GLFW_KEY_RIGHT_SHIFT
+            ) == GLFW.GLFW_PRESS
+        ) {
             modifiers = modifiers or KeybindData.MODIFIER_SHIFT
         }
 
-        if (GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS ||
-            GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS) {
+        if (GLFW.glfwGetKey(
+                windowHandle,
+                GLFW.GLFW_KEY_LEFT_CONTROL
+            ) == GLFW.GLFW_PRESS || GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS
+        ) {
             modifiers = modifiers or KeybindData.MODIFIER_CTRL
         }
 
-        if (GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_LEFT_ALT) == GLFW.GLFW_PRESS ||
-            GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_RIGHT_ALT) == GLFW.GLFW_PRESS) {
+        if (GLFW.glfwGetKey(windowHandle, GLFW.GLFW_KEY_LEFT_ALT) == GLFW.GLFW_PRESS || GLFW.glfwGetKey(
+                windowHandle,
+                GLFW.GLFW_KEY_RIGHT_ALT
+            ) == GLFW.GLFW_PRESS
+        ) {
             modifiers = modifiers or KeybindData.MODIFIER_ALT
         }
 
@@ -191,10 +199,14 @@ object SettingsRegistry {
 
     fun isModifierKey(keyCode: Int): Boolean {
         return keyCode in listOf(
-            GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT,
-            GLFW.GLFW_KEY_LEFT_CONTROL, GLFW.GLFW_KEY_RIGHT_CONTROL,
-            GLFW.GLFW_KEY_LEFT_ALT, GLFW.GLFW_KEY_RIGHT_ALT,
-            GLFW.GLFW_KEY_LEFT_SUPER, GLFW.GLFW_KEY_RIGHT_SUPER
+            GLFW.GLFW_KEY_LEFT_SHIFT,
+            GLFW.GLFW_KEY_RIGHT_SHIFT,
+            GLFW.GLFW_KEY_LEFT_CONTROL,
+            GLFW.GLFW_KEY_RIGHT_CONTROL,
+            GLFW.GLFW_KEY_LEFT_ALT,
+            GLFW.GLFW_KEY_RIGHT_ALT,
+            GLFW.GLFW_KEY_LEFT_SUPER,
+            GLFW.GLFW_KEY_RIGHT_SUPER
         )
     }
 }

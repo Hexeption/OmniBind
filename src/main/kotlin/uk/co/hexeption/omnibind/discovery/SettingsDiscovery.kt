@@ -179,7 +179,11 @@ object SettingsDiscovery {
         if (!OptionInstance::class.java.isAssignableFrom(field.type)) return null
 
         val optionInstance = field.get(options) as? OptionInstance<*> ?: return null
-        val currentValue = try { optionInstance.get() } catch (e: Exception) { return null }
+        val currentValue = try {
+            optionInstance.get()
+        } catch (e: Exception) {
+            return null
+        }
         if (currentValue !is Boolean) return null
 
         val booleanOption = optionInstance as OptionInstance<Boolean>
@@ -261,7 +265,11 @@ object SettingsDiscovery {
         if (!OptionInstance::class.java.isAssignableFrom(field.type)) return null
 
         val optionInstance = field.get(options) as? OptionInstance<*> ?: return null
-        val currentValue = try { optionInstance.get() } catch (e: Exception) { return null }
+        val currentValue = try {
+            optionInstance.get()
+        } catch (e: Exception) {
+            return null
+        }
 
         val fieldName = field.name
         val displayName = SLIDER_DISPLAY_NAME_OVERRIDES[fieldName] ?: return null
@@ -272,25 +280,19 @@ object SettingsDiscovery {
         val (getter, setter) = when (currentValue) {
             is Int -> {
                 val intOption = optionInstance as OptionInstance<Int>
-                Pair(
-                    { intOption.get().toDouble() },
-                    { value: Double -> intOption.set(value.toInt()) }
-                )
+                Pair({ intOption.get().toDouble() }, { value: Double -> intOption.set(value.toInt()) })
             }
+
             is Double -> {
                 val doubleOption = optionInstance as OptionInstance<Double>
-                Pair(
-                    { doubleOption.get() },
-                    { value: Double -> doubleOption.set(value) }
-                )
+                Pair({ doubleOption.get() }, { value: Double -> doubleOption.set(value) })
             }
+
             is Float -> {
                 val floatOption = optionInstance as OptionInstance<Float>
-                Pair(
-                    { floatOption.get().toDouble() },
-                    { value: Double -> floatOption.set(value.toFloat()) }
-                )
+                Pair({ floatOption.get().toDouble() }, { value: Double -> floatOption.set(value.toFloat()) })
             }
+
             else -> return null
         }
 

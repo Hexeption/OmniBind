@@ -17,16 +17,16 @@ object NotificationManager {
     private var currentHudNotification: HudNotification? = null
 
     data class HudNotification(
-        val message: String,
-        val isEnabled: Boolean,
-        val expiryTime: Long
+        val message: String, val isEnabled: Boolean, val expiryTime: Long
     ) {
         fun isExpired(): Boolean = System.currentTimeMillis() >= expiryTime
     }
 
     fun showToggleNotification(setting: ToggleableSetting, newValue: Boolean) {
         if (OmniBindConfig.showToasts()) showToast(setting.displayName, if (newValue) "§aON" else "§cOFF")
-        if (OmniBindConfig.showHudNotifications()) showHudNotification("${setting.displayName}: ${if (newValue) "ON" else "OFF"}", newValue)
+        if (OmniBindConfig.showHudNotifications()) showHudNotification(
+            "${setting.displayName}: ${if (newValue) "ON" else "OFF"}", newValue
+        )
     }
 
     fun showSliderNotification(slider: SliderSetting, newValue: Double) {
@@ -42,12 +42,11 @@ object NotificationManager {
             val title = Component.translatable("omnibind.notification.title")
             val description = Component.literal("$name: $value")
 
-            toastManager.addToast(SystemToast.multiline(
-                client,
-                SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
-                title,
-                description
-            ))
+            toastManager.addToast(
+                SystemToast.multiline(
+                    client, SystemToast.SystemToastId.PERIODIC_NOTIFICATION, title, description
+                )
+            )
 
             LOGGER.debug("Showed toast for $name: $value")
         } catch (e: Exception) {
@@ -57,9 +56,7 @@ object NotificationManager {
 
     private fun showHudNotification(message: String, isEnabled: Boolean) {
         currentHudNotification = HudNotification(
-            message = message,
-            isEnabled = isEnabled,
-            expiryTime = System.currentTimeMillis() + 2000
+            message = message, isEnabled = isEnabled, expiryTime = System.currentTimeMillis() + 2000
         )
     }
 

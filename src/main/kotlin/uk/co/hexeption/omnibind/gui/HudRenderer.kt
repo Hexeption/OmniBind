@@ -17,9 +17,7 @@ object HudRenderer {
 
     fun register() {
         HudElementRegistry.attachElementBefore(
-            VanillaHudElements.CHAT,
-            HUD_LAYER_ID,
-            ::render
+            VanillaHudElements.CHAT, HUD_LAYER_ID, ::render
         )
     }
 
@@ -43,11 +41,7 @@ object HudRenderer {
         val padding = 4
         val bgColor = if (notification.isEnabled) 0x80006600 else 0x80660000
         guiGraphics.fill(
-            x - padding,
-            y - padding,
-            x + textWidth + padding,
-            y + 9 + padding,
-            bgColor.toInt()
+            x - padding, y - padding, x + textWidth + padding, y + 9 + padding, bgColor.toInt()
         )
 
         val borderColor = if (notification.isEnabled) 0xFF00FF00.toInt() else 0xFFFF0000.toInt()

@@ -34,8 +34,7 @@ object OmniBindConfig {
     )
 
     data class KeybindData(
-        val keyCode: Int = GLFW.GLFW_KEY_UNKNOWN,
-        val modifiers: Int = 0
+        val keyCode: Int = GLFW.GLFW_KEY_UNKNOWN, val modifiers: Int = 0
     ) {
         companion object {
             const val MODIFIER_SHIFT = 1
@@ -257,14 +256,9 @@ object OmniBindConfig {
     fun findConflicts(keybind: KeybindData, excludeSettingId: String? = null): List<String> {
         if (keybind.isUnbound()) return emptyList()
 
-        return config.keybinds
-            .filter { (id, kb) ->
-                id != excludeSettingId &&
-                kb.keyCode == keybind.keyCode &&
-                kb.modifiers == keybind.modifiers
-            }
-            .keys
-            .toList()
+        return config.keybinds.filter { (id, kb) ->
+                id != excludeSettingId && kb.keyCode == keybind.keyCode && kb.modifiers == keybind.modifiers
+            }.keys.toList()
     }
 }
 
