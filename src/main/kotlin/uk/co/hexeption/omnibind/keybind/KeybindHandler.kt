@@ -8,7 +8,7 @@ import org.lwjgl.glfw.GLFW
 import org.slf4j.LoggerFactory
 import uk.co.hexeption.omnibind.gui.ClothOmniBindScreen
 import com.mojang.blaze3d.platform.InputConstants
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import uk.co.hexeption.omnibind.OmniBind
 
 /**
@@ -18,7 +18,7 @@ object KeybindHandler {
 
     private val LOGGER = LoggerFactory.getLogger("OmniBind/Keybinds")
 
-    private val OmniBindCategory = KeyMapping.Category(ResourceLocation.fromNamespaceAndPath(OmniBind.MOD_ID, "category"))
+    private val OmniBindCategory = KeyMapping.Category(Identifier.fromNamespaceAndPath(OmniBind.MOD_ID, "category"))
 
     private val OPEN_CONFIG_KEY: KeyMapping by lazy {
         KeyMapping(

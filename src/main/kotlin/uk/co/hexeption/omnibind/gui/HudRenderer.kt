@@ -5,7 +5,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import uk.co.hexeption.omnibind.notification.NotificationManager
 
 /**
@@ -13,7 +13,7 @@ import uk.co.hexeption.omnibind.notification.NotificationManager
  */
 object HudRenderer {
 
-    private val HUD_LAYER_ID = ResourceLocation.fromNamespaceAndPath("omnibind", "notification_hud")
+    private val HUD_LAYER_ID = Identifier.fromNamespaceAndPath("omnibind", "notification_hud")
 
     fun register() {
         HudElementRegistry.attachElementBefore(

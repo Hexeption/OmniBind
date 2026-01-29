@@ -6,6 +6,7 @@ import me.shedaniel.clothconfig2.api.Modifier
 import me.shedaniel.clothconfig2.api.ModifierKeyCode
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
 import uk.co.hexeption.omnibind.keybind.SettingsRegistry
 import uk.co.hexeption.omnibind.config.OmniBindConfig
 
@@ -217,9 +218,7 @@ object ClothOmniBindScreen {
             }
         }
 
-        builder.setDefaultBackgroundTexture(
-            net.minecraft.resources.ResourceLocation.withDefaultNamespace("textures/block/dark_oak_planks.png")
-        )
+        builder.setDefaultBackgroundTexture(Identifier.withDefaultNamespace("textures/block/dark_oak_planks.png"))
 
         return builder.build()
     }
