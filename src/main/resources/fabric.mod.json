@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "${id}",
+  "name": "${name}",
+  "version": "${version}",
+  "description": "A client-side mod that adds keybinds for all toggleable settings.",
+  "authors": [
+    "Hexeption"
+  ],
+  "contact": {
+    "homepage": "https://github.com/Hexeption/OmniBind",
+    "sources": "https://github.com/Hexeption/OmniBind",
+    "issues": "https://github.com/Hexeption/OmniBind/issues"
+  },
+  "license": "MPL-2.0",
+  "icon": "assets/omnibind/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "uk.co.hexeption.omnibind.OmniBind"
+      }
+    ],
+    "modmenu": [
+      {
+        "adapter": "kotlin",
+        "value": "uk.co.hexeption.omnibind.integration.ModMenuIntegration"
+      }
+    ]
+  },
+  "mixins": [
+    "omnibind.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "fabric-language-kotlin": "*",
+    "minecraft": "${mcdep}",
+    "cloth-config": "*"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}
